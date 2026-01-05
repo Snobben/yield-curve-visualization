@@ -84,7 +84,40 @@ function createVisualizationWithControls(data, onFrameUpdate) {
     .attr('fill', 'none')
     .attr('stroke', colors.primary)
     .attr('stroke-opacity', 1)
-    .attr('stroke-width', 3);
+    .attr('stroke-width', 3)
+    .style('cursor', 'pointer')
+    .on('mouseover', function() {
+      d3.select(this).attr('stroke-width', 4);
+    })
+    .on('mousemove', function(event) {
+      const [mouseX] = d3.pointer(event, g.node());
+      const hoveredTime = xScale.domain().find((d) => {
+        const bandWidth = xScale.bandwidth();
+        const x = xScale(d);
+        return mouseX >= x && mouseX <= x + bandWidth;
+      });
+
+      if (hoveredTime && data[dataIndex]) {
+        const yieldData = data[dataIndex].yields.find(y => y.time === hoveredTime);
+        if (yieldData) {
+          tooltip
+            .style('opacity', 1)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px')
+            .html(`
+              <div class="tooltip-title">${hoveredTime} (Current)</div>
+              <div class="tooltip-content">
+                <span>Rate:</span><span>${yieldData.rate.toFixed(2)}%</span>
+                <span>Date:</span><span>${data[dataIndex].date.toLocaleDateString()}</span>
+              </div>
+            `);
+        }
+      }
+    })
+    .on('mouseout', function() {
+      d3.select(this).attr('stroke-width', 3);
+      tooltip.style('opacity', 0);
+    });
 
   // Add a group element to contain the trace lines for previous data points
   const traceGroup = g.append('g');
@@ -134,42 +167,15 @@ function createVisualizationWithControls(data, onFrameUpdate) {
 
   // Add tooltips
   const tooltip = d3.select('#tooltip');
+  let hoveredTraceIndex = null;
 
-  // Add invisible overlay for mouse tracking
-  const overlay = g.append('rect')
-    .attr('class', 'overlay')
-    .attr('width', width - margin.left - margin.right)
-    .attr('height', height - margin.top - margin.bottom)
+  // Create a highlight path that will show the full curve when hovering
+  const highlightPath = g.append('path')
     .attr('fill', 'none')
-    .attr('pointer-events', 'all')
-    .on('mousemove', function(event) {
-      const [mouseX] = d3.pointer(event);
-      const hoveredTime = xScale.domain().find((d, i) => {
-        const bandWidth = xScale.bandwidth();
-        const x = xScale(d);
-        return mouseX >= x && mouseX <= x + bandWidth;
-      });
-
-      if (hoveredTime && data[dataIndex]) {
-        const yieldData = data[dataIndex].yields.find(y => y.time === hoveredTime);
-        if (yieldData) {
-          tooltip
-            .style('opacity', 1)
-            .style('left', (event.pageX + 10) + 'px')
-            .style('top', (event.pageY - 28) + 'px')
-            .html(`
-              <div class="tooltip-title">${hoveredTime}</div>
-              <div class="tooltip-content">
-                <span>Rate:</span><span>${yieldData.rate.toFixed(2)}%</span>
-                <span>Date:</span><span>${data[dataIndex].date.toLocaleDateString()}</span>
-              </div>
-            `);
-        }
-      }
-    })
-    .on('mouseout', function() {
-      tooltip.style('opacity', 0);
-    });
+    .attr('stroke', '#FFD700')
+    .attr('stroke-width', 2)
+    .attr('opacity', 0)
+    .attr('pointer-events', 'none');
 
   let dataIndex = 0;
   let isPlaying = false;
@@ -188,14 +194,78 @@ function createVisualizationWithControls(data, onFrameUpdate) {
 
     // Add a trace line for the previous data points
     if (dataIndex > 0) {
+      const traceIndex = dataIndex;
       const tracePath = traceGroup
         .append('path')
         .datum(currentData)
+        .attr('class', 'trace-line')
+        .attr('data-index', traceIndex)
         .attr('fill', 'none')
-        .attr('stroke', colorScale(dataIndex))
+        .attr('stroke', colorScale(traceIndex))
         .attr('stroke-opacity', colors.traceOpacity)
         .attr('stroke-width', 1)
-        .attr('d', line);
+        .attr('d', line)
+        .style('cursor', 'pointer')
+        .on('mouseover', function(event) {
+          // Highlight this trace
+          hoveredTraceIndex = traceIndex;
+          d3.select(this)
+            .attr('stroke-width', 3)
+            .attr('stroke-opacity', 1);
+
+          // Show highlight curve
+          highlightPath
+            .datum(currentData)
+            .attr('d', line)
+            .attr('opacity', 0.6);
+
+          // Show tooltip with this trace's data
+          const traceDate = data[traceIndex].date;
+          tooltip
+            .style('opacity', 1)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px')
+            .html(`
+              <div class="tooltip-title">Historical Curve</div>
+              <div class="tooltip-content">
+                <span>Date:</span><span>${traceDate.toLocaleDateString()}</span>
+                <span>Hover over points for rates</span><span></span>
+              </div>
+            `);
+        })
+        .on('mousemove', function(event) {
+          const [mouseX] = d3.pointer(event, g.node());
+          const hoveredTime = xScale.domain().find((d) => {
+            const bandWidth = xScale.bandwidth();
+            const x = xScale(d);
+            return mouseX >= x && mouseX <= x + bandWidth;
+          });
+
+          if (hoveredTime && data[traceIndex]) {
+            const yieldData = data[traceIndex].yields.find(y => y.time === hoveredTime);
+            if (yieldData) {
+              tooltip
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 28) + 'px')
+                .html(`
+                  <div class="tooltip-title">${hoveredTime}</div>
+                  <div class="tooltip-content">
+                    <span>Rate:</span><span>${yieldData.rate.toFixed(2)}%</span>
+                    <span>Date:</span><span>${data[traceIndex].date.toLocaleDateString()}</span>
+                  </div>
+                `);
+            }
+          }
+        })
+        .on('mouseout', function() {
+          hoveredTraceIndex = null;
+          d3.select(this)
+            .attr('stroke-width', 1)
+            .attr('stroke-opacity', colors.traceOpacity);
+
+          highlightPath.attr('opacity', 0);
+          tooltip.style('opacity', 0);
+        });
 
       tracePath.lower(); // Move the trace line below the primary line
     }
@@ -239,17 +309,79 @@ function createVisualizationWithControls(data, onFrameUpdate) {
         // Clear all trace lines
         traceGroup.selectAll('path').remove();
 
-        // Redraw trace lines up to current index
+        // Redraw trace lines up to current index with hover functionality
         for (let i = 1; i <= dataIndex; i++) {
-          traceGroup
+          const traceIndex = i;
+          const tracePath = traceGroup
             .append('path')
             .datum(data[i].yields)
+            .attr('class', 'trace-line')
+            .attr('data-index', traceIndex)
             .attr('fill', 'none')
             .attr('stroke', colorScale(i))
             .attr('stroke-opacity', colors.traceOpacity)
             .attr('stroke-width', 1)
             .attr('d', line)
-            .lower();
+            .style('cursor', 'pointer')
+            .on('mouseover', function(event) {
+              hoveredTraceIndex = traceIndex;
+              d3.select(this)
+                .attr('stroke-width', 3)
+                .attr('stroke-opacity', 1);
+
+              highlightPath
+                .datum(data[traceIndex].yields)
+                .attr('d', line)
+                .attr('opacity', 0.6);
+
+              const traceDate = data[traceIndex].date;
+              tooltip
+                .style('opacity', 1)
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 28) + 'px')
+                .html(`
+                  <div class="tooltip-title">Historical Curve</div>
+                  <div class="tooltip-content">
+                    <span>Date:</span><span>${traceDate.toLocaleDateString()}</span>
+                    <span>Hover over points for rates</span><span></span>
+                  </div>
+                `);
+            })
+            .on('mousemove', function(event) {
+              const [mouseX] = d3.pointer(event, g.node());
+              const hoveredTime = xScale.domain().find((d) => {
+                const bandWidth = xScale.bandwidth();
+                const x = xScale(d);
+                return mouseX >= x && mouseX <= x + bandWidth;
+              });
+
+              if (hoveredTime && data[traceIndex]) {
+                const yieldData = data[traceIndex].yields.find(y => y.time === hoveredTime);
+                if (yieldData) {
+                  tooltip
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px')
+                    .html(`
+                      <div class="tooltip-title">${hoveredTime}</div>
+                      <div class="tooltip-content">
+                        <span>Rate:</span><span>${yieldData.rate.toFixed(2)}%</span>
+                        <span>Date:</span><span>${data[traceIndex].date.toLocaleDateString()}</span>
+                      </div>
+                    `);
+                }
+              }
+            })
+            .on('mouseout', function() {
+              hoveredTraceIndex = null;
+              d3.select(this)
+                .attr('stroke-width', 1)
+                .attr('stroke-opacity', colors.traceOpacity);
+
+              highlightPath.attr('opacity', 0);
+              tooltip.style('opacity', 0);
+            });
+
+          tracePath.lower();
         }
 
         // Update the primary path immediately

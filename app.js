@@ -10,6 +10,8 @@ class YieldCurveApp {
     this.currentIndex = 0;
     this.animationSpeed = 200;
     this.timeoutId = null;
+    this.isScrubbing = false;
+    this.wasPlayingBeforeScrub = false;
 
     this.initializeEventListeners();
     this.loadInitialData();
@@ -64,14 +66,27 @@ class YieldCurveApp {
         this.seekToIndex(index);
       });
 
-      // Resume playing after scrubbing
+      // Pause and mark as scrubbing when user grabs slider
       timelineSlider.addEventListener('mousedown', () => {
+        this.isScrubbing = true;
         this.wasPlayingBeforeScrub = this.isPlaying;
         if (this.isPlaying) this.pause();
       });
 
+      // Resume playing after scrubbing
       timelineSlider.addEventListener('mouseup', () => {
-        if (this.wasPlayingBeforeScrub) this.play();
+        this.isScrubbing = false;
+        if (this.wasPlayingBeforeScrub) {
+          this.wasPlayingBeforeScrub = false;
+          this.play();
+        }
+      });
+
+      // Handle case where mouse leaves while dragging
+      timelineSlider.addEventListener('mouseleave', () => {
+        if (this.isScrubbing) {
+          this.isScrubbing = false;
+        }
       });
     }
 
