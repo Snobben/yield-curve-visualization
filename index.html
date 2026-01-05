@@ -196,6 +196,140 @@
         text-decoration: underline;
       }
 
+      /* Controls Panel */
+      .controls-panel {
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .controls-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+      }
+
+      .controls-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .control-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .control-label {
+        font-size: 0.9em;
+        opacity: 0.9;
+        font-weight: 600;
+      }
+
+      .btn {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        cursor: pointer;
+        border-radius: 5px;
+        font-size: 0.9em;
+        transition: all 0.2s;
+        font-weight: 500;
+      }
+
+      .btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+      }
+
+      .btn:active {
+        transform: scale(0.95);
+      }
+
+      .btn.active {
+        background: rgba(255, 215, 0, 0.3);
+        border-color: #ffd700;
+      }
+
+      .btn-primary {
+        background: rgba(76, 175, 80, 0.3);
+        border-color: #4caf50;
+        min-width: 80px;
+      }
+
+      .btn-primary:hover {
+        background: rgba(76, 175, 80, 0.5);
+      }
+
+      .btn-primary.paused {
+        background: rgba(255, 152, 0, 0.3);
+        border-color: #ff9800;
+      }
+
+      .timeline-container {
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .timeline-slider {
+        width: 100%;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 3px;
+        outline: none;
+        -webkit-appearance: none;
+        cursor: pointer;
+      }
+
+      .timeline-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 16px;
+        height: 16px;
+        background: #ffd700;
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+      }
+
+      .timeline-slider::-moz-range-thumb {
+        width: 16px;
+        height: 16px;
+        background: #ffd700;
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
+      }
+
+      .timeline-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85em;
+        opacity: 0.8;
+        margin-top: 5px;
+      }
+
+      .hover-tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 5px;
+        font-size: 0.85em;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        z-index: 1000;
+      }
+
       /* Responsive */
       @media (max-width: 768px) {
         h1 {
@@ -214,6 +348,16 @@
         svg {
           max-width: 100%;
           height: auto;
+        }
+
+        .controls-row {
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .control-group {
+          width: 100%;
+          justify-content: center;
         }
       }
     </style>
@@ -237,6 +381,32 @@
 
       <!-- Treasury Yield Tab -->
       <div id="treasury-tab" class="tab-content active">
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+          <div class="controls-row">
+            <div class="control-group">
+              <button id="treasury-play-btn" class="btn btn-primary">▶ Play</button>
+              <button id="treasury-reset-btn" class="btn">↻ Reset</button>
+            </div>
+            <div class="control-group">
+              <span class="control-label">Speed:</span>
+              <button class="btn treasury-speed-btn" data-speed="0.5">0.5x</button>
+              <button class="btn treasury-speed-btn active" data-speed="1">1x</button>
+              <button class="btn treasury-speed-btn" data-speed="2">2x</button>
+              <button class="btn treasury-speed-btn" data-speed="4">4x</button>
+            </div>
+          </div>
+          <div class="controls-row">
+            <div class="timeline-container">
+              <input type="range" id="treasury-timeline" class="timeline-slider" min="0" max="100" value="0" />
+              <div class="timeline-info">
+                <span id="treasury-current-date">--</span>
+                <span id="treasury-progress">0 / 0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="viz-container">
           <h2 class="viz-title">US Treasury Yield Curve</h2>
           <p class="viz-description">
@@ -268,6 +438,32 @@
 
       <!-- Brent Futures Tab -->
       <div id="brent-tab" class="tab-content">
+        <!-- Controls Panel -->
+        <div class="controls-panel">
+          <div class="controls-row">
+            <div class="control-group">
+              <button id="brent-play-btn" class="btn btn-primary">▶ Play</button>
+              <button id="brent-reset-btn" class="btn">↻ Reset</button>
+            </div>
+            <div class="control-group">
+              <span class="control-label">Speed:</span>
+              <button class="btn brent-speed-btn" data-speed="0.5">0.5x</button>
+              <button class="btn brent-speed-btn active" data-speed="1">1x</button>
+              <button class="btn brent-speed-btn" data-speed="2">2x</button>
+              <button class="btn brent-speed-btn" data-speed="4">4x</button>
+            </div>
+          </div>
+          <div class="controls-row">
+            <div class="timeline-container">
+              <input type="range" id="brent-timeline" class="timeline-slider" min="0" max="100" value="0" />
+              <div class="timeline-info">
+                <span id="brent-current-date">--</span>
+                <span id="brent-progress">0 / 0</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="viz-container">
           <h2 class="viz-title">Brent Crude Oil Futures Curve</h2>
           <p class="viz-description">
@@ -305,6 +501,9 @@
       </footer>
     </div>
 
+    <!-- Hover Tooltip -->
+    <div id="hover-tooltip" class="hover-tooltip"></div>
+
     <script>
       // ========================================================================
       // TAB SWITCHING LOGIC
@@ -341,6 +540,8 @@
       // ========================================================================
       // TREASURY YIELD CURVE VISUALIZATION
       // ========================================================================
+      let treasuryController = null;
+
       function initTreasuryVisualization() {
         d3.csv('treasuries_cleaned.csv').then((parsedData) => {
           const formattedData = parsedData.map((row) => {
@@ -351,7 +552,7 @@
             return { date, yields };
           });
 
-          createTreasuryVisualization(formattedData);
+          treasuryController = createTreasuryVisualization(formattedData);
         }).catch(error => {
           console.error('Error loading treasury data:', error);
           document.getElementById('treasury-svg').innerHTML =
@@ -363,6 +564,13 @@
         const width = 900;
         const height = 400;
         const margin = { top: 100, right: 60, bottom: 60, left: 60 };
+
+        // Animation state
+        let dataIndex = 0;
+        let isPlaying = false;
+        let speed = 1;
+        let animationTimeout = null;
+        const baseDuration = 200;
 
         const svg = d3.select('#treasury-svg')
           .attr('width', width)
@@ -422,6 +630,7 @@
           .attr('stroke-width', 3);
 
         const traceGroup = g.append('g');
+        const tracePathsData = [];
 
         const colorScale = d3.scaleSequential(d3.interpolateViridis)
           .domain([0, data.length - 1]);
@@ -461,43 +670,172 @@
           .attr('font-weight', 'bold')
           .attr('fill', 'white');
 
-        let dataIndex = 0;
-
-        function updatePath() {
-          if (currentTab !== 'treasury') return; // Stop if tab switched
-
-          const currentData = data[dataIndex].yields;
+        // Update UI elements
+        function updateUI() {
+          document.getElementById('treasury-current-date').textContent = data[dataIndex].date.toLocaleDateString();
+          document.getElementById('treasury-progress').textContent = `${dataIndex + 1} / ${data.length}`;
+          document.getElementById('treasury-timeline').value = dataIndex;
+          document.getElementById('treasury-timeline').max = data.length - 1;
           dateDisplay.text(data[dataIndex].date.toLocaleDateString());
+        }
 
-          if (dataIndex > 0) {
+        // Render current frame
+        function renderFrame(index, animate = true) {
+          dataIndex = index;
+          const currentData = data[dataIndex].yields;
+
+          // Update primary path
+          if (animate) {
+            primaryPath
+              .datum(currentData)
+              .transition()
+              .duration(baseDuration / speed)
+              .attr('d', line);
+          } else {
+            primaryPath
+              .datum(currentData)
+              .attr('d', line);
+          }
+
+          // Add trace if not already added
+          if (!tracePathsData[dataIndex] && dataIndex > 0) {
             const tracePath = traceGroup.append('path')
               .datum(currentData)
               .attr('fill', 'none')
               .attr('stroke', colorScale(dataIndex))
               .attr('stroke-opacity', 0.4)
               .attr('stroke-width', 1)
-              .attr('d', line);
+              .attr('d', line)
+              .attr('data-index', dataIndex)
+              .style('cursor', 'pointer')
+              .on('mouseover', function(event) {
+                d3.select(this).attr('stroke-width', 2);
+                const tooltip = document.getElementById('hover-tooltip');
+                tooltip.textContent = data[dataIndex].date.toLocaleDateString();
+                tooltip.style.opacity = '1';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY - 10) + 'px';
+              })
+              .on('mouseout', function() {
+                d3.select(this).attr('stroke-width', 1);
+                document.getElementById('hover-tooltip').style.opacity = '0';
+              });
 
             tracePath.lower();
+            tracePathsData[dataIndex] = true;
           }
 
-          primaryPath
-            .datum(currentData)
-            .transition()
-            .duration(200)
-            .attr('d', line)
-            .on('end', () => {
-              dataIndex = (dataIndex + 1) % data.length;
-              updatePath();
-            });
+          updateUI();
         }
 
-        updatePath();
+        // Play animation
+        function play() {
+          if (isPlaying) return;
+          isPlaying = true;
+          document.getElementById('treasury-play-btn').innerHTML = '⏸ Pause';
+          document.getElementById('treasury-play-btn').classList.add('paused');
+
+          function step() {
+            if (!isPlaying || currentTab !== 'treasury') return;
+
+            if (dataIndex < data.length - 1) {
+              renderFrame(dataIndex + 1, true);
+              animationTimeout = setTimeout(step, baseDuration / speed);
+            } else {
+              stop();
+            }
+          }
+
+          step();
+        }
+
+        // Pause animation
+        function pause() {
+          isPlaying = false;
+          if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+          }
+          document.getElementById('treasury-play-btn').innerHTML = '▶ Play';
+          document.getElementById('treasury-play-btn').classList.remove('paused');
+        }
+
+        // Stop and reset
+        function stop() {
+          pause();
+          isPlaying = false;
+        }
+
+        // Reset visualization
+        function reset() {
+          pause();
+          traceGroup.selectAll('path').remove();
+          tracePathsData.length = 0;
+          renderFrame(0, false);
+        }
+
+        // Set speed
+        function setSpeed(newSpeed) {
+          speed = newSpeed;
+          document.querySelectorAll('.treasury-speed-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (parseFloat(btn.dataset.speed) === newSpeed) {
+              btn.classList.add('active');
+            }
+          });
+        }
+
+        // Jump to index
+        function jumpTo(index) {
+          const wasPlaying = isPlaying;
+          pause();
+
+          // Clear traces after the target index
+          if (index < dataIndex) {
+            traceGroup.selectAll('path').each(function() {
+              const pathIndex = parseInt(d3.select(this).attr('data-index'));
+              if (pathIndex > index) {
+                d3.select(this).remove();
+                tracePathsData[pathIndex] = false;
+              }
+            });
+          }
+
+          renderFrame(index, false);
+
+          if (wasPlaying && index < data.length - 1) {
+            play();
+          }
+        }
+
+        // Event listeners
+        document.getElementById('treasury-play-btn').onclick = () => {
+          if (isPlaying) pause();
+          else play();
+        };
+
+        document.getElementById('treasury-reset-btn').onclick = reset;
+
+        document.querySelectorAll('.treasury-speed-btn').forEach(btn => {
+          btn.onclick = () => setSpeed(parseFloat(btn.dataset.speed));
+        });
+
+        document.getElementById('treasury-timeline').oninput = (e) => {
+          jumpTo(parseInt(e.target.value));
+        };
+
+        // Initialize
+        renderFrame(0, false);
+
+        // Return controller
+        return { play, pause, stop, reset, setSpeed, jumpTo };
       }
 
       // ========================================================================
       // BRENT FUTURES CURVE VISUALIZATION
       // ========================================================================
+      let brentController = null;
+
       function initBrentVisualization() {
         d3.csv('brent_futures_curve.csv').then((parsedData) => {
           const formattedData = parsedData.map((row) => {
@@ -515,7 +853,7 @@
             return { date, prices };
           });
 
-          createBrentVisualization(formattedData);
+          brentController = createBrentVisualization(formattedData);
         }).catch(error => {
           console.error('Error loading Brent data:', error);
           document.getElementById('brent-svg').innerHTML =
@@ -527,6 +865,13 @@
         const width = 900;
         const height = 400;
         const margin = { top: 100, right: 60, bottom: 60, left: 60 };
+
+        // Animation state
+        let dataIndex = 0;
+        let isPlaying = false;
+        let speed = 1;
+        let animationTimeout = null;
+        const baseDuration = 200;
 
         const svg = d3.select('#brent-svg')
           .attr('width', width)
@@ -594,6 +939,7 @@
           .attr('stroke-width', 3);
 
         const traceGroup = g.append('g');
+        const tracePathsData = [];
 
         const colorScale = d3.scaleSequential(d3.interpolateViridis)
           .domain([0, data.length - 1]);
@@ -640,14 +986,21 @@
           .attr('font-weight', 'bold')
           .attr('fill', 'white');
 
-        let dataIndex = 0;
-
-        function updatePath() {
-          if (currentTab !== 'brent') return; // Stop if tab switched
-
-          const currentData = data[dataIndex].prices;
+        // Update UI elements
+        function updateUI() {
+          document.getElementById('brent-current-date').textContent = data[dataIndex].date.toLocaleDateString();
+          document.getElementById('brent-progress').textContent = `${dataIndex + 1} / ${data.length}`;
+          document.getElementById('brent-timeline').value = dataIndex;
+          document.getElementById('brent-timeline').max = data.length - 1;
           dateDisplay.text(data[dataIndex].date.toLocaleDateString());
+        }
 
+        // Render current frame
+        function renderFrame(index, animate = true) {
+          dataIndex = index;
+          const currentData = data[dataIndex].prices;
+
+          // Update curve shape indicator
           const firstPrice = currentData[0].price;
           const lastPrice = currentData[currentData.length - 1].price;
           const curveShape = lastPrice > firstPrice ? 'Contango' :
@@ -659,30 +1012,151 @@
             .text(`Shape: ${curveShape}`)
             .attr('fill', curveColor);
 
-          if (dataIndex > 0) {
+          // Update primary path
+          if (animate) {
+            primaryPath
+              .datum(currentData)
+              .transition()
+              .duration(baseDuration / speed)
+              .attr('d', line);
+          } else {
+            primaryPath
+              .datum(currentData)
+              .attr('d', line);
+          }
+
+          // Add trace if not already added
+          if (!tracePathsData[dataIndex] && dataIndex > 0) {
             const tracePath = traceGroup.append('path')
               .datum(currentData)
               .attr('fill', 'none')
               .attr('stroke', colorScale(dataIndex))
               .attr('stroke-opacity', 0.4)
               .attr('stroke-width', 1)
-              .attr('d', line);
+              .attr('d', line)
+              .attr('data-index', dataIndex)
+              .style('cursor', 'pointer')
+              .on('mouseover', function(event) {
+                d3.select(this).attr('stroke-width', 2);
+                const tooltip = document.getElementById('hover-tooltip');
+                tooltip.textContent = data[dataIndex].date.toLocaleDateString();
+                tooltip.style.opacity = '1';
+                tooltip.style.left = (event.pageX + 10) + 'px';
+                tooltip.style.top = (event.pageY - 10) + 'px';
+              })
+              .on('mouseout', function() {
+                d3.select(this).attr('stroke-width', 1);
+                document.getElementById('hover-tooltip').style.opacity = '0';
+              });
 
             tracePath.lower();
+            tracePathsData[dataIndex] = true;
           }
 
-          primaryPath
-            .datum(currentData)
-            .transition()
-            .duration(200)
-            .attr('d', line)
-            .on('end', () => {
-              dataIndex = (dataIndex + 1) % data.length;
-              updatePath();
-            });
+          updateUI();
         }
 
-        updatePath();
+        // Play animation
+        function play() {
+          if (isPlaying) return;
+          isPlaying = true;
+          document.getElementById('brent-play-btn').innerHTML = '⏸ Pause';
+          document.getElementById('brent-play-btn').classList.add('paused');
+
+          function step() {
+            if (!isPlaying || currentTab !== 'brent') return;
+
+            if (dataIndex < data.length - 1) {
+              renderFrame(dataIndex + 1, true);
+              animationTimeout = setTimeout(step, baseDuration / speed);
+            } else {
+              stop();
+            }
+          }
+
+          step();
+        }
+
+        // Pause animation
+        function pause() {
+          isPlaying = false;
+          if (animationTimeout) {
+            clearTimeout(animationTimeout);
+            animationTimeout = null;
+          }
+          document.getElementById('brent-play-btn').innerHTML = '▶ Play';
+          document.getElementById('brent-play-btn').classList.remove('paused');
+        }
+
+        // Stop and reset
+        function stop() {
+          pause();
+          isPlaying = false;
+        }
+
+        // Reset visualization
+        function reset() {
+          pause();
+          traceGroup.selectAll('path').remove();
+          tracePathsData.length = 0;
+          renderFrame(0, false);
+        }
+
+        // Set speed
+        function setSpeed(newSpeed) {
+          speed = newSpeed;
+          document.querySelectorAll('.brent-speed-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (parseFloat(btn.dataset.speed) === newSpeed) {
+              btn.classList.add('active');
+            }
+          });
+        }
+
+        // Jump to index
+        function jumpTo(index) {
+          const wasPlaying = isPlaying;
+          pause();
+
+          // Clear traces after the target index
+          if (index < dataIndex) {
+            traceGroup.selectAll('path').each(function() {
+              const pathIndex = parseInt(d3.select(this).attr('data-index'));
+              if (pathIndex > index) {
+                d3.select(this).remove();
+                tracePathsData[pathIndex] = false;
+              }
+            });
+          }
+
+          renderFrame(index, false);
+
+          if (wasPlaying && index < data.length - 1) {
+            play();
+          }
+        }
+
+        // Event listeners
+        document.getElementById('brent-play-btn').onclick = () => {
+          if (isPlaying) pause();
+          else play();
+        };
+
+        document.getElementById('brent-reset-btn').onclick = reset;
+
+        document.querySelectorAll('.brent-speed-btn').forEach(btn => {
+          btn.onclick = () => setSpeed(parseFloat(btn.dataset.speed));
+        });
+
+        document.getElementById('brent-timeline').oninput = (e) => {
+          jumpTo(parseInt(e.target.value));
+        };
+
+        // Initialize
+        renderFrame(0, false);
+
+        // Return controller
+        return { play, pause, stop, reset, setSpeed, jumpTo };
       }
 
       // ========================================================================
