@@ -3,13 +3,695 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yield Curve Visualization</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <title>Financial Curves Visualization</title>
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="yield-curve-visualization.js"></script>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        color: white;
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding: 20px;
+      }
+
+      h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .subtitle {
+        font-size: 1.1em;
+        opacity: 0.9;
+        margin-top: 10px;
+      }
+
+      /* Tab System */
+      .tabs {
+        display: flex;
+        justify-content: center;
+        gap: 10px;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+      }
+
+      .tab-button {
+        padding: 15px 30px;
+        font-size: 1.1em;
+        font-weight: 600;
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(10px);
+      }
+
+      .tab-button:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      }
+
+      .tab-button.active {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: #ffd700;
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+      }
+
+      /* Tab Content */
+      .tab-content {
+        display: none;
+        animation: fadeIn 0.5s ease-in;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Visualization Container */
+      .viz-container {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 15px;
+        padding: 30px;
+        backdrop-filter: blur(10px);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        margin-bottom: 20px;
+      }
+
+      .viz-title {
+        font-size: 1.8em;
+        margin-bottom: 20px;
+        text-align: center;
+        color: #ffd700;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      }
+
+      .viz-description {
+        text-align: center;
+        margin-bottom: 20px;
+        font-size: 1em;
+        opacity: 0.9;
+        line-height: 1.6;
+        max-width: 800px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      svg {
+        display: block;
+        margin: 0 auto;
+        border-radius: 10px;
+      }
+
+      /* Info Panel */
+      .info-panel {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        backdrop-filter: blur(10px);
+      }
+
+      .info-panel h3 {
+        color: #ffd700;
+        margin-bottom: 10px;
+      }
+
+      .info-panel p {
+        line-height: 1.6;
+        margin-bottom: 10px;
+      }
+
+      .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+      }
+
+      .info-card {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #ffd700;
+      }
+
+      .info-card h4 {
+        color: #ffd700;
+        margin-bottom: 8px;
+        font-size: 1.1em;
+      }
+
+      .info-card p {
+        font-size: 0.95em;
+        margin: 0;
+      }
+
+      /* Footer */
+      footer {
+        text-align: center;
+        margin-top: 40px;
+        padding: 20px;
+        opacity: 0.8;
+        font-size: 0.9em;
+      }
+
+      footer a {
+        color: #ffd700;
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        h1 {
+          font-size: 2em;
+        }
+
+        .tab-button {
+          padding: 12px 20px;
+          font-size: 1em;
+        }
+
+        .viz-container {
+          padding: 20px;
+        }
+
+        svg {
+          max-width: 100%;
+          height: auto;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Yield Curve Visualization</h1>
-    <svg></svg>
+    <div class="container">
+      <header>
+        <h1>📊 Financial Curves Visualization</h1>
+        <p class="subtitle">Interactive analysis of Treasury Yields and Crude Oil Futures</p>
+      </header>
+
+      <!-- Tab Navigation -->
+      <div class="tabs">
+        <button class="tab-button active" onclick="switchTab('treasury')">
+          🏛️ Treasury Yield Curve
+        </button>
+        <button class="tab-button" onclick="switchTab('brent')">
+          🛢️ Brent Futures Curve
+        </button>
+      </div>
+
+      <!-- Treasury Yield Tab -->
+      <div id="treasury-tab" class="tab-content active">
+        <div class="viz-container">
+          <h2 class="viz-title">US Treasury Yield Curve</h2>
+          <p class="viz-description">
+            Watch how the US Treasury yield curve evolved throughout 2022, showing the relationship
+            between bond maturity and interest rates. An inverted curve (short-term rates higher than
+            long-term) often signals recession concerns.
+          </p>
+          <svg id="treasury-svg"></svg>
+        </div>
+
+        <div class="info-panel">
+          <h3>Understanding the Treasury Yield Curve</h3>
+          <div class="info-grid">
+            <div class="info-card">
+              <h4>Normal Curve</h4>
+              <p>Upward sloping - longer-term bonds have higher yields. Indicates healthy economic expectations.</p>
+            </div>
+            <div class="info-card">
+              <h4>Inverted Curve</h4>
+              <p>Downward sloping - short-term yields exceed long-term. Historically precedes recessions.</p>
+            </div>
+            <div class="info-card">
+              <h4>Flat Curve</h4>
+              <p>Minimal difference between short and long-term rates. Suggests economic uncertainty.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Brent Futures Tab -->
+      <div id="brent-tab" class="tab-content">
+        <div class="viz-container">
+          <h2 class="viz-title">Brent Crude Oil Futures Curve</h2>
+          <p class="viz-description">
+            Explore the evolution of Brent crude oil futures prices across different delivery months
+            from 2023-2025. The curve shape reveals market sentiment about future supply and demand.
+          </p>
+          <svg id="brent-svg"></svg>
+        </div>
+
+        <div class="info-panel">
+          <h3>Understanding Futures Curves</h3>
+          <div class="info-grid">
+            <div class="info-card">
+              <h4>Contango (Upward)</h4>
+              <p>Future prices exceed spot prices. Normal market structure reflecting storage costs and stable supply.</p>
+            </div>
+            <div class="info-card">
+              <h4>Backwardation (Downward)</h4>
+              <p>Spot prices exceed future prices. Indicates supply tightness or immediate strong demand.</p>
+            </div>
+            <div class="info-card">
+              <h4>Market Signals</h4>
+              <p>Sharp changes in curve shape can signal major shifts in supply, demand, or geopolitical factors.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>
+          Data Sources: US Treasury (treasury.gov) | Sample Brent Futures Data<br>
+          Built with <a href="https://d3js.org/" target="_blank">D3.js</a> |
+          <a href="https://github.com/Snobben/yield-curve-visualization" target="_blank">View on GitHub</a>
+        </p>
+      </footer>
+    </div>
+
+    <script>
+      // ========================================================================
+      // TAB SWITCHING LOGIC
+      // ========================================================================
+      let currentTab = 'treasury';
+      let treasuryInitialized = false;
+      let brentInitialized = false;
+
+      function switchTab(tabName) {
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Update tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+          content.classList.remove('active');
+        });
+        document.getElementById(tabName + '-tab').classList.add('active');
+
+        currentTab = tabName;
+
+        // Initialize visualization if not already done
+        if (tabName === 'treasury' && !treasuryInitialized) {
+          initTreasuryVisualization();
+          treasuryInitialized = true;
+        } else if (tabName === 'brent' && !brentInitialized) {
+          initBrentVisualization();
+          brentInitialized = true;
+        }
+      }
+
+      // ========================================================================
+      // TREASURY YIELD CURVE VISUALIZATION
+      // ========================================================================
+      function initTreasuryVisualization() {
+        d3.csv('treasuries_cleaned.csv').then((parsedData) => {
+          const formattedData = parsedData.map((row) => {
+            const date = new Date(row.Date);
+            const yields = Object.entries(row)
+              .filter(([key, value]) => key !== 'Date')
+              .map(([time, rate]) => ({ time, rate: parseFloat(rate) }));
+            return { date, yields };
+          });
+
+          createTreasuryVisualization(formattedData);
+        }).catch(error => {
+          console.error('Error loading treasury data:', error);
+          document.getElementById('treasury-svg').innerHTML =
+            '<text x="450" y="200" fill="white" text-anchor="middle">Error loading data. Please ensure treasuries_cleaned.csv is available.</text>';
+        });
+      }
+
+      function createTreasuryVisualization(data) {
+        const width = 900;
+        const height = 400;
+        const margin = { top: 100, right: 60, bottom: 60, left: 60 };
+
+        const svg = d3.select('#treasury-svg')
+          .attr('width', width)
+          .attr('height', height)
+          .style('background-color', 'black');
+
+        const g = svg.append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const xScale = d3.scaleBand()
+          .domain(data[0].yields.map((d) => d.time))
+          .range([0, width - margin.left - margin.right])
+          .padding(0.1);
+
+        const yScale = d3.scaleLinear()
+          .domain([0, d3.max(data, (d) => d3.max(d.yields, (yieldPoint) => yieldPoint.rate))])
+          .range([height - margin.top - margin.bottom, 0])
+          .nice();
+
+        const xAxis = d3.axisBottom(xScale)
+          .tickFormat(d => `${d}`)
+          .tickSize(-height + margin.top + margin.bottom)
+          .tickPadding(10);
+
+        const yAxis = d3.axisLeft(yScale)
+          .tickFormat((d) => `${d}%`)
+          .tickSize(-width + margin.left + margin.right)
+          .tickPadding(10);
+
+        const xAxisGroup = g.append('g')
+          .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
+          .call(xAxis)
+          .attr('stroke', 'white');
+
+        xAxisGroup.selectAll('.tick text').attr('dx', '-3em');
+
+        g.append('g').call(yAxis).attr('stroke', 'white');
+
+        const title = g.append('text')
+          .text('US Treasury yield development in 2022')
+          .attr('x', (width - margin.left - margin.right) / 2)
+          .attr('y', -margin.top / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .attr('font-size', '20px')
+          .attr('font-weight', 'bold');
+
+        const line = d3.line()
+          .x((d) => xScale(d.time) + xScale.bandwidth() / 2)
+          .y((d) => yScale(d.rate))
+          .curve(d3.curveMonotoneX);
+
+        const primaryPath = g.append('path')
+          .attr('fill', 'none')
+          .attr('stroke', 'white')
+          .attr('stroke-opacity', 1)
+          .attr('stroke-width', 3);
+
+        const traceGroup = g.append('g');
+
+        const colorScale = d3.scaleSequential(d3.interpolateViridis)
+          .domain([0, data.length - 1]);
+
+        const gradient = g.append('linearGradient')
+          .attr('id', 'treasuryColorGradient')
+          .attr('gradientUnits', 'objectBoundingBox')
+          .attr('x1', 0)
+          .attr('y1', 0)
+          .attr('x2', 1)
+          .attr('y2', 0);
+
+        gradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', colorScale(0));
+
+        gradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', colorScale(data.length - 1));
+
+        const gradientWidth = width - margin.left - margin.right;
+        const gradientHeight = 10;
+        const gradientPosX = 0;
+        const gradientPosY = height - margin.bottom - gradientHeight;
+
+        g.append('rect')
+          .attr('x', gradientPosX)
+          .attr('y', gradientPosY)
+          .attr('width', gradientWidth)
+          .attr('height', gradientHeight)
+          .attr('fill', 'url(#treasuryColorGradient)');
+
+        const dateDisplay = g.append('text')
+          .attr('x', width - margin.left - margin.right - 100)
+          .attr('y', -30)
+          .attr('font-size', '16px')
+          .attr('font-weight', 'bold')
+          .attr('fill', 'white');
+
+        let dataIndex = 0;
+
+        function updatePath() {
+          if (currentTab !== 'treasury') return; // Stop if tab switched
+
+          const currentData = data[dataIndex].yields;
+          dateDisplay.text(data[dataIndex].date.toLocaleDateString());
+
+          if (dataIndex > 0) {
+            const tracePath = traceGroup.append('path')
+              .datum(currentData)
+              .attr('fill', 'none')
+              .attr('stroke', colorScale(dataIndex))
+              .attr('stroke-opacity', 0.4)
+              .attr('stroke-width', 1)
+              .attr('d', line);
+
+            tracePath.lower();
+          }
+
+          primaryPath
+            .datum(currentData)
+            .transition()
+            .duration(200)
+            .attr('d', line)
+            .on('end', () => {
+              dataIndex = (dataIndex + 1) % data.length;
+              updatePath();
+            });
+        }
+
+        updatePath();
+      }
+
+      // ========================================================================
+      // BRENT FUTURES CURVE VISUALIZATION
+      // ========================================================================
+      function initBrentVisualization() {
+        d3.csv('brent_futures_curve.csv').then((parsedData) => {
+          const formattedData = parsedData.map((row) => {
+            const date = new Date(row.Date);
+            const prices = Object.entries(row)
+              .filter(([key, value]) => key !== 'Date')
+              .map(([contract, price]) => ({
+                contract,
+                price: parseFloat(price),
+                monthsOut: contract === 'M1' ? 1 : contract === 'M2' ? 2 :
+                           contract === 'M3' ? 3 : contract === 'M6' ? 6 :
+                           contract === 'M12' ? 12 : contract === 'M18' ? 18 :
+                           contract === 'M24' ? 24 : contract === 'M36' ? 36 : 0
+              }));
+            return { date, prices };
+          });
+
+          createBrentVisualization(formattedData);
+        }).catch(error => {
+          console.error('Error loading Brent data:', error);
+          document.getElementById('brent-svg').innerHTML =
+            '<text x="450" y="200" fill="white" text-anchor="middle">Error loading data. Please ensure brent_futures_curve.csv is available.</text>';
+        });
+      }
+
+      function createBrentVisualization(data) {
+        const width = 900;
+        const height = 400;
+        const margin = { top: 100, right: 60, bottom: 60, left: 60 };
+
+        const svg = d3.select('#brent-svg')
+          .attr('width', width)
+          .attr('height', height)
+          .style('background-color', 'black');
+
+        const g = svg.append('g')
+          .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        const xScale = d3.scaleBand()
+          .domain(data[0].prices.map((d) => d.contract))
+          .range([0, width - margin.left - margin.right])
+          .padding(0.1);
+
+        const yScale = d3.scaleLinear()
+          .domain([
+            d3.min(data, (d) => d3.min(d.prices, (p) => p.price)) * 0.95,
+            d3.max(data, (d) => d3.max(d.prices, (p) => p.price)) * 1.05
+          ])
+          .range([height - margin.top - margin.bottom, 0])
+          .nice();
+
+        const xAxis = d3.axisBottom(xScale)
+          .tickFormat(d => d)
+          .tickSize(-height + margin.top + margin.bottom)
+          .tickPadding(10);
+
+        const yAxis = d3.axisLeft(yScale)
+          .tickFormat((d) => `$${d.toFixed(2)}`)
+          .tickSize(-width + margin.left + margin.right)
+          .tickPadding(10);
+
+        const xAxisGroup = g.append('g')
+          .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
+          .call(xAxis)
+          .attr('stroke', 'white');
+
+        xAxisGroup.selectAll('.tick text')
+          .attr('dx', '-1em')
+          .attr('transform', 'rotate(-45)')
+          .style('text-anchor', 'end');
+
+        g.append('g')
+          .call(yAxis)
+          .attr('stroke', 'white');
+
+        const title = g.append('text')
+          .text('Brent Crude Oil Futures Curve (2023-2025)')
+          .attr('x', (width - margin.left - margin.right) / 2)
+          .attr('y', -margin.top / 2)
+          .attr('text-anchor', 'middle')
+          .attr('fill', 'white')
+          .attr('font-size', '20px')
+          .attr('font-weight', 'bold');
+
+        const line = d3.line()
+          .x((d) => xScale(d.contract) + xScale.bandwidth() / 2)
+          .y((d) => yScale(d.price))
+          .curve(d3.curveMonotoneX);
+
+        const primaryPath = g.append('path')
+          .attr('fill', 'none')
+          .attr('stroke', 'white')
+          .attr('stroke-opacity', 1)
+          .attr('stroke-width', 3);
+
+        const traceGroup = g.append('g');
+
+        const colorScale = d3.scaleSequential(d3.interpolateViridis)
+          .domain([0, data.length - 1]);
+
+        const gradient = g.append('linearGradient')
+          .attr('id', 'brentColorGradient')
+          .attr('gradientUnits', 'objectBoundingBox')
+          .attr('x1', 0)
+          .attr('y1', 0)
+          .attr('x2', 1)
+          .attr('y2', 0);
+
+        gradient.append('stop')
+          .attr('offset', '0%')
+          .attr('stop-color', colorScale(0));
+
+        gradient.append('stop')
+          .attr('offset', '100%')
+          .attr('stop-color', colorScale(data.length - 1));
+
+        const gradientWidth = width - margin.left - margin.right;
+        const gradientHeight = 10;
+        const gradientPosX = 0;
+        const gradientPosY = height - margin.bottom - gradientHeight - 40;
+
+        g.append('rect')
+          .attr('x', gradientPosX)
+          .attr('y', gradientPosY)
+          .attr('width', gradientWidth)
+          .attr('height', gradientHeight)
+          .attr('fill', 'url(#brentColorGradient)');
+
+        const curveIndicator = g.append('text')
+          .attr('x', width - margin.left - margin.right - 150)
+          .attr('y', -50)
+          .attr('font-size', '14px')
+          .attr('font-weight', 'normal')
+          .attr('fill', 'yellow');
+
+        const dateDisplay = g.append('text')
+          .attr('x', width - margin.left - margin.right - 150)
+          .attr('y', -30)
+          .attr('font-size', '16px')
+          .attr('font-weight', 'bold')
+          .attr('fill', 'white');
+
+        let dataIndex = 0;
+
+        function updatePath() {
+          if (currentTab !== 'brent') return; // Stop if tab switched
+
+          const currentData = data[dataIndex].prices;
+          dateDisplay.text(data[dataIndex].date.toLocaleDateString());
+
+          const firstPrice = currentData[0].price;
+          const lastPrice = currentData[currentData.length - 1].price;
+          const curveShape = lastPrice > firstPrice ? 'Contango' :
+                             lastPrice < firstPrice ? 'Backwardation' : 'Flat';
+          const curveColor = curveShape === 'Contango' ? '#00ff00' :
+                             curveShape === 'Backwardation' ? '#ff6b6b' : '#ffff00';
+
+          curveIndicator
+            .text(`Shape: ${curveShape}`)
+            .attr('fill', curveColor);
+
+          if (dataIndex > 0) {
+            const tracePath = traceGroup.append('path')
+              .datum(currentData)
+              .attr('fill', 'none')
+              .attr('stroke', colorScale(dataIndex))
+              .attr('stroke-opacity', 0.4)
+              .attr('stroke-width', 1)
+              .attr('d', line);
+
+            tracePath.lower();
+          }
+
+          primaryPath
+            .datum(currentData)
+            .transition()
+            .duration(200)
+            .attr('d', line)
+            .on('end', () => {
+              dataIndex = (dataIndex + 1) % data.length;
+              updatePath();
+            });
+        }
+
+        updatePath();
+      }
+
+      // ========================================================================
+      // AUTO-INITIALIZE FIRST TAB
+      // ========================================================================
+      window.addEventListener('DOMContentLoaded', () => {
+        initTreasuryVisualization();
+        treasuryInitialized = true;
+      });
+    </script>
   </body>
 </html>
