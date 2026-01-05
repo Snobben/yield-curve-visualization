@@ -3,13 +3,98 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Yield Curve Visualization</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+    <title>US Treasury Yield Curve Visualization</title>
+    <link rel="stylesheet" href="styles.css" />
     <script src="https://d3js.org/d3.v6.min.js"></script>
-    <script src="yield-curve-visualization.js"></script>
   </head>
   <body>
-    <h1>Yield Curve Visualization</h1>
-    <svg></svg>
+    <div class="container">
+      <header>
+        <h1>US Treasury Yield Curve Visualization</h1>
+        <p class="subtitle">Interactive visualization of Treasury bond yields over time</p>
+      </header>
+
+      <!-- Data Source Controls -->
+      <div class="controls-panel">
+        <div class="control-section">
+          <h3>Data Source</h3>
+          <div class="data-source-selector">
+            <label>
+              <input type="radio" name="dataSource" value="csv" checked />
+              Local Data (2022)
+            </label>
+            <label>
+              <input type="radio" name="dataSource" value="api" />
+              Live Treasury Data
+            </label>
+          </div>
+        </div>
+
+        <div class="control-section" id="year-selector" style="display: none;">
+          <label for="year-select">Select Year:</label>
+          <select id="year-select">
+            <option value="2026">2026</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022" selected>2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+          </select>
+          <button id="load-data-btn" class="btn btn-primary">Load Data</button>
+        </div>
+
+        <div class="control-section">
+          <h3>Playback Controls</h3>
+          <div class="playback-controls">
+            <button id="step-back-btn" class="btn btn-icon" title="Step Back">◄</button>
+            <button id="play-pause-btn" class="btn btn-primary">⏸ Pause</button>
+            <button id="step-forward-btn" class="btn btn-icon" title="Step Forward">►</button>
+            <button id="restart-btn" class="btn" title="Restart">⟲</button>
+          </div>
+        </div>
+
+        <div class="control-section">
+          <label for="speed-select">Animation Speed:</label>
+          <select id="speed-select">
+            <option value="50">5x Fast</option>
+            <option value="100">2x Fast</option>
+            <option value="200" selected>Normal</option>
+            <option value="400">0.5x Slow</option>
+            <option value="800">0.25x Slow</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Visualization Container -->
+      <div class="viz-container">
+        <svg id="yield-curve-chart"></svg>
+        <div id="tooltip" class="tooltip"></div>
+      </div>
+
+      <!-- Timeline Scrubber -->
+      <div class="timeline-container">
+        <label for="timeline-slider">Timeline:</label>
+        <input type="range" id="timeline-slider" min="0" max="100" value="0" />
+        <div id="timeline-info" class="timeline-info">
+          <span id="current-date">Loading...</span>
+          <span id="timeline-position">0 / 0</span>
+        </div>
+      </div>
+
+      <!-- Loading Indicator -->
+      <div id="loading-indicator" class="loading-indicator" style="display: none;">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
+      </div>
+
+      <!-- Error Message -->
+      <div id="error-message" class="error-message" style="display: none;"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="data-service.js"></script>
+    <script src="yield-curve-visualization.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>

@@ -1,28 +1,42 @@
-// Load and parse the CSV file
-d3.csv('treasuries_cleaned.csv').then((parsedData) => {
-  // Convert the data into the desired format
-  const formattedData = parsedData.map((row) => {
-    const date = new Date(row.Date);
-    // Extract the yield data and convert the rates to numbers
-    const yields = Object.entries(row)
-      .filter(([key, value]) => key !== 'Date')
-      .map(([time, rate]) => ({ time, rate: parseFloat(rate) }));
-    // Combine the date and yields in a single object
-    return { date, yields };
-  });
+// Configuration
+const CONFIG = {
+  dataSource: 'treasuries_cleaned.csv',
+  width: 900,
+  height: 400,
+  margin: { top: 100, right: 60, bottom: 60, left: 60 },
+  animationDuration: 200,
+  title: 'US Treasury Yield Development',
+  colors: {
+    background: 'black',
+    primary: 'white',
+    traceOpacity: 0.4
+  },
+  dateDisplay: {
+    x: 700, // width - 200
+    y: -30,
+    fontSize: '16px'
+  },
+  title: {
+    fontSize: '24px',
+    yOffset: 0.5 // fraction of margin.top
+  }
+};
 
-  // Create the visualization using the formatted data
-  createVisualization(formattedData);
-});
+/**
+ * Create visualization with playback controls
+ * @param {Array} data - Formatted yield data
+ * @param {Function} onFrameUpdate - Callback for each frame update
+ * @returns {Object} Visualization control object
+ */
+function createVisualizationWithControls(data, onFrameUpdate) {
+  // Use configuration for dimensions and margins
+  const { width, height, margin, animationDuration, colors } = CONFIG;
 
-function createVisualization(data) {
-  // Define the dimensions and margins for the visualization
-  const width = 900;
-  const height = 400;
-  const margin = { top: 100, right: 60, bottom: 60, left: 60 };
-
-  // Create an SVG element and set its dimensions and colour
-  const svg = d3.select('svg').attr('width', width).attr('height', height).style('background-color', 'black');
+  // Select the SVG element
+  const svg = d3.select('#yield-curve-chart')
+    .attr('width', width)
+    .attr('height', height)
+    .style('background-color', colors.background);
 
   // Create a group element (g) and apply a translation to account for the margins
   const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
@@ -38,34 +52,39 @@ function createVisualization(data) {
   const xAxis = d3.axisBottom(xScale).tickFormat(d => `${d}`).tickSize(-height + margin.top + margin.bottom).tickPadding(10);
   const yAxis = d3.axisLeft(yScale).tickFormat((d) => `${d}%`).tickSize(-width + margin.left + margin.right).tickPadding(10);
 
-  // Add the x-axis and y-axis to the visualization with white text color
+  // Add the x-axis and y-axis to the visualization
   const xAxisGroup = g
     .append('g')
     .attr('transform', `translate(0,${height - margin.top - margin.bottom})`)
     .call(xAxis)
-    .attr('stroke', 'white');
+    .attr('stroke', colors.primary);
 
   xAxisGroup.selectAll('.tick text').attr('dx', '-3em'); // Move the x-axis labels a bit to the left
 
-  g.append('g').call(yAxis).attr('stroke', 'white');
+  g.append('g').call(yAxis).attr('stroke', colors.primary);
 
 
  // Add the title
- const title = g
+ const titleText = g
    .append('text')
-   .text('US Treasury yield development in 2022') // Change the title text
+   .attr('id', 'chart-title')
+   .text(CONFIG.title)
    .attr('x', width / 2)
-   .attr('y', -margin.top / 2)
+   .attr('y', -margin.top * CONFIG.title.yOffset)
    .attr('text-anchor', 'middle')
-   .attr('fill', 'white') // Make the title white
-   .attr('font-size', '24px')
+   .attr('fill', colors.primary)
+   .attr('font-size', CONFIG.title.fontSize)
    .attr('font-weight', 'bold');
 
   // Define the line generator for the yield curve using the x and y scales
   const line = d3.line().x((d) => xScale(d.time)).y((d) => yScale(d.rate)).curve(d3.curveMonotoneX);
 
   // Add a path element for the primary yield curve
-  const primaryPath = g.append('path').attr('fill', 'none').attr('stroke', 'white').attr('stroke-opacity', 1).attr('stroke-width', 3);
+  const primaryPath = g.append('path')
+    .attr('fill', 'none')
+    .attr('stroke', colors.primary)
+    .attr('stroke-opacity', 1)
+    .attr('stroke-width', 3);
 
   // Add a group element to contain the trace lines for previous data points
   const traceGroup = g.append('g');
@@ -103,53 +122,69 @@ function createVisualization(data) {
      .attr('height', gradientHeight)
      .attr('fill', 'url(#colorGradient)');
 
-  
-
-  // Animation loop
-  let index = 0;
-  setInterval(() => {
-    // Get the current data point and update the primary yield curve
-    const currentData = data[index];
-    primaryPath
-      .datum(currentData.yields)
-      .transition()
-      .duration(200)
-      .attr('d', line)
-      .on('end', () => {
-        // Add a new trace line for the current data point after the primary line transition ends
-        traceGroup
-          .append('path')
-          .datum(currentData.yields)
-          .attr('fill', 'none')
-          .attr('stroke', colorScale(index))
-          .attr('stroke-opacity', 0.4)
-          .attr('stroke-width', 1)
-          .attr('d', line);
-      });
-
-    // Update the date display
-    dateDisplay.text(currentData.date.toLocaleDateString());
-
-    // Increment the index and wrap around if necessary
-    index = (index + 1) % data.length;
-  }, 200);
-
   // Add a text element to display the current date
   const dateDisplay = g
     .append('text')
-    .attr('x', width - 200)
-    .attr('y', - 30)
-    .attr('font-size', '16px')
+    .attr('id', 'date-display-svg')
+    .attr('x', CONFIG.dateDisplay.x)
+    .attr('y', CONFIG.dateDisplay.y)
+    .attr('font-size', CONFIG.dateDisplay.fontSize)
     .attr('font-weight', 'bold')
-    .attr('fill', 'white');
+    .attr('fill', colors.primary);
+
+  // Add tooltips
+  const tooltip = d3.select('#tooltip');
+
+  // Add invisible overlay for mouse tracking
+  const overlay = g.append('rect')
+    .attr('class', 'overlay')
+    .attr('width', width - margin.left - margin.right)
+    .attr('height', height - margin.top - margin.bottom)
+    .attr('fill', 'none')
+    .attr('pointer-events', 'all')
+    .on('mousemove', function(event) {
+      const [mouseX] = d3.pointer(event);
+      const hoveredTime = xScale.domain().find((d, i) => {
+        const bandWidth = xScale.bandwidth();
+        const x = xScale(d);
+        return mouseX >= x && mouseX <= x + bandWidth;
+      });
+
+      if (hoveredTime && data[dataIndex]) {
+        const yieldData = data[dataIndex].yields.find(y => y.time === hoveredTime);
+        if (yieldData) {
+          tooltip
+            .style('opacity', 1)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY - 28) + 'px')
+            .html(`
+              <div class="tooltip-title">${hoveredTime}</div>
+              <div class="tooltip-content">
+                <span>Rate:</span><span>${yieldData.rate.toFixed(2)}%</span>
+                <span>Date:</span><span>${data[dataIndex].date.toLocaleDateString()}</span>
+              </div>
+            `);
+        }
+      }
+    })
+    .on('mouseout', function() {
+      tooltip.style('opacity', 0);
+    });
 
   let dataIndex = 0;
+  let isPlaying = false;
+  let animationTimeoutId = null;
 
-  function updatePath() {
+  function updatePath(immediate = false) {
     const currentData = data[dataIndex].yields;
 
     // Update the date display
     dateDisplay.text(data[dataIndex].date.toLocaleDateString());
+
+    // Call the frame update callback
+    if (onFrameUpdate) {
+      onFrameUpdate(dataIndex);
+    }
 
     // Add a trace line for the previous data points
     if (dataIndex > 0) {
@@ -157,23 +192,92 @@ function createVisualization(data) {
         .append('path')
         .datum(currentData)
         .attr('fill', 'none')
-        .attr('stroke', colorScale(dataIndex)) // Use the color scale to set the stroke color
+        .attr('stroke', colorScale(dataIndex))
+        .attr('stroke-opacity', colors.traceOpacity)
         .attr('stroke-width', 1)
         .attr('d', line);
 
       tracePath.lower(); // Move the trace line below the primary line
     }
 
+    const duration = immediate ? 0 : animationDuration;
+
     primaryPath
       .datum(currentData)
       .transition()
-      .duration(200) // Reduce the duration to make the date change faster
+      .duration(duration)
       .attr('d', line)
       .on('end', () => {
-        dataIndex = (dataIndex + 1) % data.length;
-        updatePath();
+        if (isPlaying) {
+          dataIndex = (dataIndex + 1) % data.length;
+          updatePath();
+        }
       });
   }
 
-  updatePath();
+  // Control object to expose to external code
+  const control = {
+    play: function() {
+      if (!isPlaying) {
+        isPlaying = true;
+        updatePath();
+      }
+    },
+
+    pause: function() {
+      isPlaying = false;
+      if (animationTimeoutId) {
+        clearTimeout(animationTimeoutId);
+        animationTimeoutId = null;
+      }
+    },
+
+    seekTo: function(index) {
+      if (index >= 0 && index < data.length) {
+        dataIndex = index;
+
+        // Clear all trace lines
+        traceGroup.selectAll('path').remove();
+
+        // Redraw trace lines up to current index
+        for (let i = 1; i <= dataIndex; i++) {
+          traceGroup
+            .append('path')
+            .datum(data[i].yields)
+            .attr('fill', 'none')
+            .attr('stroke', colorScale(i))
+            .attr('stroke-opacity', colors.traceOpacity)
+            .attr('stroke-width', 1)
+            .attr('d', line)
+            .lower();
+        }
+
+        // Update the primary path immediately
+        const currentData = data[dataIndex].yields;
+        dateDisplay.text(data[dataIndex].date.toLocaleDateString());
+
+        primaryPath
+          .datum(currentData)
+          .attr('d', line);
+
+        // Call the frame update callback
+        if (onFrameUpdate) {
+          onFrameUpdate(dataIndex);
+        }
+      }
+    },
+
+    getCurrentIndex: function() {
+      return dataIndex;
+    },
+
+    isPlaying: function() {
+      return isPlaying;
+    }
+  };
+
+  // Store control globally for app.js
+  window.visualizationControl = control;
+
+  return control;
 }
